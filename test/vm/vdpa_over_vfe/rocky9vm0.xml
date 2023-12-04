@@ -14,6 +14,13 @@
     </hugepages>
   </memoryBacking>
   <vcpu placement='static'>5</vcpu>
+  <cputune>
+    <vcpupin vcpu='0' cpuset='14'/>
+    <vcpupin vcpu='1' cpuset='16'/>
+    <vcpupin vcpu='2' cpuset='18'/>
+    <vcpupin vcpu='3' cpuset='20'/>
+    <vcpupin vcpu='4' cpuset='22'/>
+  </cputune>
   <resource>
     <partition>/machine</partition>
   </resource>
