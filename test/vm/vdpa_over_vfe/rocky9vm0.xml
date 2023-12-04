@@ -1,4 +1,4 @@
-<domain type='kvm'>
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>rocky9vm0</name>
   <uuid>7791cb2d-3f5c-40c6-9a97-a888fc84567f</uuid>
   <metadata>
@@ -102,5 +102,11 @@
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </rng>
   </devices>
+  <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=char0,path=/tmp/vhost_vblk_vf0.socket,server=on'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='vhost-user-blk-pci,page-per-vq=on,chardev=char0,num-queues=1,disable-legacy=on,disable-modern=off'/>
+  </qemu:commandline>
 </domain>
 
