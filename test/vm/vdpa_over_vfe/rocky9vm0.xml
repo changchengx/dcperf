@@ -8,6 +8,11 @@
   </metadata>
   <memory unit='KiB'>8388608</memory>
   <currentMemory unit='KiB'>8388608</currentMemory>
+  <memoryBacking>
+    <hugepages>
+      <page size='2048' unit='KiB'/>
+    </hugepages>
+  </memoryBacking>
   <vcpu placement='static'>5</vcpu>
   <resource>
     <partition>/machine</partition>
