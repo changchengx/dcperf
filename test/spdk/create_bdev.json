@@ -1,0 +1,194 @@
+{
+  "subsystems": [ {
+    "subsystem": "bdev",
+    "config": [
+        {
+          "method": "bdev_set_options",
+          "params": {
+            "bdev_auto_examine": false
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_0",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59152",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram0:0",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_1",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59154",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram1:1",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_2",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59156",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram2:2",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_3",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59158",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram3:3",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_4",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59150",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram4:4",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_5",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59151",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram5:5",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_6",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59153",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram6:6",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_7",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59155",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram7:7",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_8",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59157",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram8:8",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_9",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59159",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram9:9",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_10",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59162",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram10:10",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_11",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59163",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram11:11",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_12",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59164",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram12:12",
+            "hdgst": true,
+            "ddgst":true
+          }
+        },
+        {
+          "method": "bdev_nvme_attach_controller",
+          "params": {
+            "trtype": "tcp",
+            "name":"test_dpu_13",
+            "traddr":"192.168.30.20",
+            "trsvcid":"59165",
+            "adrfam": "ipv4",
+            "subnqn":"nqn.2023-12.io.ram13:13",
+            "hdgst": true,
+            "ddgst":true
+          }
+        } ]
+  } ]
+}
