@@ -1,5 +1,5 @@
 kprobe:pciehp_disable_slot {
-    printf("pciehp_disable_slot called with ctrl: %d, safe_remove: %d\n", arg0, arg1);
+    printf("pciehp_disable_slot called with ctrl: %d, state: %d, safe_remove: %d\n", arg0, *((uint8*)arg0 + 112), arg1);
     printf("Backtrace:\n%s\n", kstack);
 }
 
@@ -8,10 +8,15 @@ kretprobe:pciehp_disable_slot {
 }
 
 kprobe:pciehp_enable_slot {
-    printf("pciehp_enable_slot called with ctrl: %d\n", arg0);
+    printf("pciehp_enable_slot called with ctrl: %d, state: %llu\n", arg0, *((uint8*)arg0 + 112));
     printf("Backtrace:\n%s\n", kstack);
 }
 
 kretprobe:pciehp_enable_slot {
     printf("pciehp_enable_slot returned: %d\n", retval);
+}
+
+kprobe:pciehp_request {
+    printf("ctrl: %d,  state = %d\n", arg0, *((uint8*)arg0 + 112));
+    printf("Backtrace:\n%s\n", kstack);
 }
