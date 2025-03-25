@@ -1,0 +1,13 @@
+kprobe:vp_notify {
+    /* need to check the offset for the running kernel
+     * arg0 : vring_virtqueue
+     * 80   : offsetof(vring_virtqueue, split.vring)
+     * 16   : offsetof(vring, avail)
+     * *avail
+     * 2    : offsetof(vring_avail, idx)
+     */
+    printf("vp_notify index: 0x%08x, priv: 0x%016lx ring idx:0x%04x\n",
+           *((uint32*)((uint8*)arg0 + 40)),
+           *((uint64*)((uint8*)arg0 + 48)),
+           *(uint16*)((*(uint64*)((uint8*)arg0 + 80 + 16)) + 2));
+}
