@@ -17,7 +17,11 @@
     <acpi/>
     <apic/>
   </features>
-  <cpu mode='host-passthrough' check='none' migratable='on'/>
+  <cpu mode='host-passthrough' check='none' migratable='on'>
+    <numa>
+      <cell id='0' cpus='0-4' memory='8388608' unit='KiB' memAccess='shared'/>
+    </numa>
+  </cpu>
   <clock offset='utc'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>
