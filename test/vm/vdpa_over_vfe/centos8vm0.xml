@@ -1,5 +1,5 @@
 <domain type='kvm'>
-  <name>centos8</name>
+  <name>centos8vm0</name>
   <uuid>fe7a8d7e-53ae-400b-8e58-c51238ab5ee8</uuid>
   <metadata>
     <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
@@ -10,7 +10,7 @@
   <currentMemory unit='KiB'>8388608</currentMemory>
   <vcpu placement='static'>5</vcpu>
   <os>
-    <type arch='x86_64' machine='pc-i440fx-rhel7.6.0'>hvm</type>
+    <type arch='x86_64' machine='pc-i440fx-7.1'>hvm</type>
     <boot dev='hd'/>
   </os>
   <features>
@@ -31,16 +31,13 @@
     <suspend-to-disk enabled='no'/>
   </pm>
   <devices>
-    <emulator>/usr/libexec/qemu-kvm</emulator>
+    <emulator>/.autodirect/swgwork/jerrliu/snap/qemu-8.1.3/install/bin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
       <source file='/var/lib/libvirt/images/CentOS-8-ec2-8.4.2105-20210603.0.x86_64.qcow2'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0'/>
     </disk>
-    <controller type='usb' index='0' model='qemu-xhci' ports='15'>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
-    </controller>
     <controller type='pci' index='0' model='pci-root'/>
     <controller type='virtio-serial' index='0'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
@@ -49,7 +46,7 @@
       <mac address='02:ca:fe:fa:ce:aa'/>
       <source network='default'/>
       <model type='virtio'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
     </interface>
     <serial type='pty'>
       <target type='isa-serial' port='0'>
@@ -63,9 +60,6 @@
       <target type='virtio' name='org.qemu.guest_agent.0'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>
     </channel>
-    <input type='mouse' bus='ps2'/>
-    <input type='keyboard' bus='ps2'/>
-    <audio id='1' type='none'/>
     <memballoon model='virtio'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
     </memballoon>
