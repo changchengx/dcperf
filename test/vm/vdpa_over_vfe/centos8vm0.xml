@@ -1,4 +1,4 @@
-<domain type='kvm'>
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>centos8vm0</name>
   <uuid>fe7a8d7e-53ae-400b-8e58-c51238ab5ee8</uuid>
   <metadata>
@@ -77,5 +77,11 @@
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </rng>
   </devices>
+  <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=char0,path=/tmp/vhost_vblk_vf0.socket,server=on'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='vhost-user-blk-pci,page-per-vq=on,chardev=char0,num-queues=2,disable-legacy=on,disable-modern=off'/>
+  </qemu:commandline>
 </domain>
 
