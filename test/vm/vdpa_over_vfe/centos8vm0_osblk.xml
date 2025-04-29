@@ -50,7 +50,7 @@
     </disk>
     <disk type='vhostuser' device='disk' snapshot='no'>
       <driver name='qemu' type='raw' queues='1' queue_size='256' page_per_vq='on'/>
-      <source type='unix' path='/tmp/vhost_vblk_vf1.socket'/>
+      <source type='unix' path='/tmp/vhost_vblk_vf2.socket'/>
       <target dev='vdb' bus='virtio'/>
     <address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/>
     </disk>
@@ -86,9 +86,9 @@
   </devices>
   <qemu:commandline>
     <qemu:arg value='-chardev'/>
-    <qemu:arg value='socket,id=char0,path=/tmp/vhost_vblk_vf0.socket,server=on'/>
+    <qemu:arg value='socket,id=char1,path=/tmp/vhost_vblk_vf1.socket,server=on'/>
     <qemu:arg value='-device'/>
-    <qemu:arg value='vhost-user-blk-pci,page-per-vq=on,chardev=char0,num-queues=2,disable-legacy=on,disable-modern=off'/>
+    <qemu:arg value='vhost-user-blk-pci,page-per-vq=on,chardev=char1,num-queues=2,disable-legacy=on,disable-modern=off'/>
   </qemu:commandline>
 </domain>
 
