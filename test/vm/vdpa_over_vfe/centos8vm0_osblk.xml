@@ -16,7 +16,7 @@
   <vcpu placement='static'>5</vcpu>
   <os>
     <type arch='x86_64' machine='pc-i440fx-7.1'>hvm</type>
-    <boot dev='hd'/>
+    <bootmenu enable='no'/>
   </os>
   <features>
     <acpi/>
@@ -41,10 +41,11 @@
   </pm>
   <devices>
     <emulator>/.autodirect/swgwork/jerrliu/snap/qemu-8.1.3/install/bin/qemu-system-x86_64</emulator>
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2'/>
-      <source file='/var/lib/libvirt/images/CentOS-8-ec2-8.4.2105-20210603.0.x86_64.qcow2'/>
+    <disk type='vhostuser' device='disk' snapshot='no'>
+      <driver name='qemu' type='raw' queues='2' queue_size='256' page_per_vq='on'/>
+      <source type='unix' path='/tmp/vhost_vblk_osdisk.socket'/>
       <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0'/>
     </disk>
     <disk type='vhostuser' device='disk' snapshot='no'>
