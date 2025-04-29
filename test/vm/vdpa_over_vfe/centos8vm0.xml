@@ -8,6 +8,11 @@
   </metadata>
   <memory unit='KiB'>8388608</memory>
   <currentMemory unit='KiB'>8388608</currentMemory>
+  <memoryBacking>
+    <hugepages>
+      <page size='1048576' unit='KiB' nodeset='0'/>
+    </hugepages>
+  </memoryBacking>
   <vcpu placement='static'>5</vcpu>
   <os>
     <type arch='x86_64' machine='pc-i440fx-7.1'>hvm</type>
