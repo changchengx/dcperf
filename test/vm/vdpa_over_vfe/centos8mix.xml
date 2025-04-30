@@ -1,5 +1,5 @@
 <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
-  <name>centos8vm0_osblk</name>
+  <name>centos8mix</name>
   <uuid>fd7a8d7e-53ae-400b-8e58-c51238ab5ee8</uuid>
   <metadata>
     <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
