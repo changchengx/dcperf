@@ -16,12 +16,12 @@
 # $ mlxconfig -d /dev/mst/mt41692_pciconf0 -y set  PF_SF_BAR_SIZE=8
 #
 
-export SNAP_RPC_SRC=/root/alibaba_org/snap_rpc.py
+export SNAP_RPC_SRC=/root/old/snap_rpc.py
 export SPDK_SOCK_SRC=/var/tmp/spdk.sock.src
-export SRC_SNAP=/root/alibaba_org/install/bin
+export SRC_SNAP=/root/old/install/bin
 
 export NVME_EMU_PROVIDER=dpa
-source /root/alibaba_org/install/bin/set_environment_variables.sh
+source /root/old/install/bin/set_environment_variables.sh
 
 $SRC_SNAP/snap_service -m 0xF000 -r $SPDK_SOCK_SRC >> /root/snap_src.log 2>&1 &
 
