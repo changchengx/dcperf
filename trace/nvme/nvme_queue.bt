@@ -1,0 +1,93 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright(c) 2025 Liu, Changcheng <changcheng.liu@aliyun.com>
+ */
+
+/* Basic process to get the right field offset
+ * 1. nvme driver isn't built into kernel and it's built as module.
+ *    So, we can't use BTF to check the vmlinux btf file to get the offset.
+ *
+ * 2. pahole can't get field offet either because the released nvme driver
+ *    file format doesn't support pahole.
+ *
+ * 3. need to use objdump to get the get the assemble file as below:
+ *  || $ objdump -S nvme.ko > nvme.s
+ *  || 54 0000000000000050 <nvme_irq_check>:
+ *  || 55       50:   e8 00 00 00 00          callq  55 <nvme_irq_check+0x5>
+ *  || 56       55:   0f b7 46 72             movzwl 0x72(%rsi),%eax    ==> nvmeq->cq_head
+ *  || 57       59:   0f b6 56 76             movzbl 0x76(%rsi),%edx    ==> nvmeq->cq_phase
+ *  || 58       5d:   48 c1 e0 04             shl    $0x4,%rax          ==>
+ *  || 59       61:   48 03 46 48             add    0x48(%rsi),%rax    ==> &nvme->cqes[nvmeq->cq_head]
+ *  || 60       65:   0f b7 40 0e             movzwl 0xe(%rax),%eax     ==> nvme->cqes[nvmeq->cq_head].status
+ *  || 61       69:   83 e0 01                and    $0x1,%eax
+ *  || 62       6c:   66 39 d0                cmp    %dx,%ax
+ *
+ * 4. Get the field offset according to the above info:
+ *    https://github.com/torvalds/linux/blob/v6.15/drivers/nvme/host/pci.c#L192
+ *  |-------------------------------------------------|
+ *  | cqes          |  *(uint64*)((uint8*)arg + 0x48) |
+ *  |-------------------------------------------------|
+ *  | q_depth       |  *(uint32*)((uint8*)arg + 0x68) |
+ *  |-------------------------------------------------|
+ *  | cq_vector     |  *(uint16*)((uint8*)arg + 0x6c) |
+ *  |-------------------------------------------------|
+ *  | sq_tail       |  *(uint16*)((uint8*)arg + 0x6e) |   // After copying cmds into sq_cmds, advance sq_tail in nvme_sq_copy_cmd, point to the next sq_cmds that will be filled
+ *  |-------------------------------------------------|
+ *  | last_sq_tail  |  *(uint16*)((uint8*)arg + 0x70) |   // After ring db to device, assign last_sq_tail to sq_tail
+ *  |-------------------------------------------------|
+ *  | cq_head       |  *(uint16*)((uint8*)arg + 0x72) |   // point to the next cqe that the host is waiting for
+ *  |-------------------------------------------------|
+ *  | qid           |  *(uint16*)((uint8*)arg + 0x74) |
+ *  |-------------------------------------------------|
+ *  | cq_phase      |  *((uint8*)arg + 0x76)          |   // the next cqe phase bit that the host is waiting for
+ *  |-------------------------------------------------|
+ *
+ * 5. List the kprobe traceable functions in nvme module
+ *  sudo bpftrace -l 'kprobe:nvme*'
+ *
+ * 6. Use nvme_irq as the kprobe function.
+ *
+ * 7. Only trace it when IO hang.
+ *    Execute command on DPU to trigger send MSIX interrupt to host
+ *    e.g. snap_rpc.py -s /var/tmp/spdk.sock.src nvme_controller_dbg -d 2 -c NVMeCtrl1 -i 3
+ */
+
+/* NVMe Spec 1.4
+ * Figure 123: Completion Queue Entry Layout – Admin and NVM Command Set
+ */
+struct nvme_completion
+{
+    unsigned int result;
+    unsigned int rsvd;
+    unsigned short int sq_head;
+    unsigned short int sq_id;
+    unsigned short int command_id;
+    unsigned short int status;
+};
+
+kprobe:nvme_irq {
+    $nvme_queue = (uint8*)arg1;
+    $cqes_ptr = *(uint64*)($nvme_queue + 0x48); // pointer to CQEs array
+    $q_depth = *(uint32*)($nvme_queue + 0x68);
+    $cq_head = *(uint16*)($nvme_queue + 0x72);
+
+    printf("nvme_q[%d]: q_depth:%d, sq_tail:%d, last_sq_tail:%d, cq_head:%d cq_phase:%d\n",
+           *(uint16*)($nvme_queue + 0x74),
+           *(uint32*)($nvme_queue + 0x68),
+           *(uint16*)($nvme_queue + 0x6e),
+           *(uint16*)($nvme_queue + 0x70),
+           *(uint16*)($nvme_queue + 0x72),
+           *($nvme_queue + 0x76));
+
+    $pre = ($cq_head + $q_depth - 1) % $q_depth;
+    $cur = $cq_head;
+    $nxt = ($cq_head + 1) % $q_depth;
+
+    $cqe_size = (uint32)(16); // sizeof(struct nvme_completion)
+    $pre_cqe = *(struct nvme_completion*)($cqes_ptr + $pre * $cqe_size);
+    $cur_cqe = *(struct nvme_completion*)($cqes_ptr + $cur * $cqe_size);
+    $nxt_cqe = *(struct nvme_completion*)($cqes_ptr + $nxt * $cqe_size);
+    printf("CQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\n",
+          $pre, $pre_cqe.result, $pre_cqe.rsvd, $pre_cqe.sq_head, $pre_cqe.sq_id, $pre_cqe.command_id, $pre_cqe.status,
+          $cur, $cur_cqe.result, $cur_cqe.rsvd, $cur_cqe.sq_head, $cur_cqe.sq_id, $cur_cqe.command_id, $cur_cqe.status,
+          $nxt, $nxt_cqe.result, $nxt_cqe.rsvd, $nxt_cqe.sq_head, $nxt_cqe.sq_id, $nxt_cqe.command_id, $nxt_cqe.status);
+}
