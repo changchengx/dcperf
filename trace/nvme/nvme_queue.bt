@@ -70,24 +70,36 @@ kprobe:nvme_irq {
     $q_depth = *(uint32*)($nvme_queue + 0x68);
     $cq_head = *(uint16*)($nvme_queue + 0x72);
 
-    printf("nvme_q[%d]: q_depth:%d, sq_tail:%d, last_sq_tail:%d, cq_head:%d cq_phase:%d\n",
+    /* sq_tail: the next SQ slot idx where to write SQE
+     * last_sq_tail: last_sq_tail = sq_tail after ring DB
+     * cq_head: the next CQ slot idx where to wait for the next CQ
+     * cq_phase: the expected CQE phase bit in CQE[cq_head]
+     */
+    printf("nvme_q[%d]: q_depth:0x%08x, sq_tail:0x%04x, last_sq_tail:0x%04x, cq_head:0x%04x cq_phase:%d\n",
            *(uint16*)($nvme_queue + 0x74),
            *(uint32*)($nvme_queue + 0x68),
            *(uint16*)($nvme_queue + 0x6e),
            *(uint16*)($nvme_queue + 0x70),
            *(uint16*)($nvme_queue + 0x72),
-           *($nvme_queue + 0x76));
+           *(uint8*)($nvme_queue + 0x76));
 
-    $pre = ($cq_head + $q_depth - 1) % $q_depth;
-    $cur = $cq_head;
-    $nxt = ($cq_head + 1) % $q_depth;
+    $pre2 = ($cq_head + $q_depth - 2) % $q_depth;
+    $pre1 = ($cq_head + $q_depth - 1) % $q_depth;
+    $curr = $cq_head;
+    $nxt1 = ($cq_head + 1) % $q_depth;
+    $nxt2 = ($cq_head + 2) % $q_depth;
 
     $cqe_size = (uint32)(16); // sizeof(struct nvme_completion)
-    $pre_cqe = *(struct nvme_completion*)($cqes_ptr + $pre * $cqe_size);
-    $cur_cqe = *(struct nvme_completion*)($cqes_ptr + $cur * $cqe_size);
-    $nxt_cqe = *(struct nvme_completion*)($cqes_ptr + $nxt * $cqe_size);
-    printf("CQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\n",
-          $pre, $pre_cqe.result, $pre_cqe.rsvd, $pre_cqe.sq_head, $pre_cqe.sq_id, $pre_cqe.command_id, $pre_cqe.status,
-          $cur, $cur_cqe.result, $cur_cqe.rsvd, $cur_cqe.sq_head, $cur_cqe.sq_id, $cur_cqe.command_id, $cur_cqe.status,
-          $nxt, $nxt_cqe.result, $nxt_cqe.rsvd, $nxt_cqe.sq_head, $nxt_cqe.sq_id, $nxt_cqe.command_id, $nxt_cqe.status);
+    $pre2_cqe = *(struct nvme_completion*)($cqes_ptr + $pre2 * $cqe_size);
+    $pre1_cqe = *(struct nvme_completion*)($cqes_ptr + $pre1 * $cqe_size);
+    $curr_cqe = *(struct nvme_completion*)($cqes_ptr + $curr * $cqe_size);
+    $nxt1_cqe = *(struct nvme_completion*)($cqes_ptr + $nxt1 * $cqe_size);
+    $nxt2_cqe = *(struct nvme_completion*)($cqes_ptr + $nxt2 * $cqe_size);
+
+    printf("CQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\nCQE[%04x]: result:0x%08x rsvd:0x%08x sq_head:0x%04x sq_id:0x%04x cmd_id:0x%04x status:0x%04x\n",
+          $pre2, $pre2_cqe.result, $pre2_cqe.rsvd, $pre2_cqe.sq_head, $pre2_cqe.sq_id, $pre2_cqe.command_id, $pre2_cqe.status,
+          $pre1, $pre1_cqe.result, $pre1_cqe.rsvd, $pre1_cqe.sq_head, $pre1_cqe.sq_id, $pre1_cqe.command_id, $pre1_cqe.status,
+          $curr, $curr_cqe.result, $curr_cqe.rsvd, $curr_cqe.sq_head, $curr_cqe.sq_id, $curr_cqe.command_id, $curr_cqe.status,
+          $nxt1, $nxt1_cqe.result, $nxt1_cqe.rsvd, $nxt1_cqe.sq_head, $nxt1_cqe.sq_id, $nxt1_cqe.command_id, $nxt1_cqe.status,
+          $nxt2, $nxt2_cqe.result, $nxt2_cqe.rsvd, $nxt2_cqe.sq_head, $nxt2_cqe.sq_id, $nxt2_cqe.command_id, $nxt2_cqe.status);
 }
