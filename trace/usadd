@@ -1,0 +1,20 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Liu, Changcheng <changcheng.liu@aliyun.com>
+
+while read record_line
+do
+	echo $record_line | \
+	awk -v track_time="`date +%s%6N`" '
+	{
+		seconds = (track_time / 1000000);
+		macroseconds = (track_time % 1000000);
+
+		printf("[%s:%06d] %s\n",
+				strftime("%H_%M_%S", seconds),
+				macroseconds,
+				$0);
+
+		fflush()
+	}'
+done < /dev/stdin
