@@ -1,0 +1,245 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright(c) 2026 Liu, Changcheng <changcheng.liu@aliyun.com>
+ */
+
+kprobe:vp_del_vqs {
+    @in_vp_del_vqs[tid] = 1;
+    $ns = nsecs;
+    printf("[%s:%06d] vp_del_vqs vdev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, comm, pid);
+}
+
+/*
+ * Trace the resource-teardown calls reached from vp_del_vqs(), including
+ * calls one level below its direct callees. Keep each displayed stack to a
+ * maximum depth of two.
+ */
+kprobe:free_irq,
+kprobe:vring_del_virtqueue,
+/@in_vp_del_vqs[tid]/
+{
+    $ns = nsecs;
+    printf("[%s:%06d] vp_del_vqs leaf=%s comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        probe, comm, pid);
+}
+
+kretprobe:vp_del_vqs {
+    delete(@in_vp_del_vqs[tid]);
+}
+
+kprobe:pci_enable_sriov {
+    $ns = nsecs;
+    printf("[%s:%06d] pci_enable_sriov pci_dev=%p nr_virtfn=%d comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, arg1, comm, pid);
+    printf("  %s\n", kstack(4));
+}
+
+kprobe:pci_disable_sriov {
+    $ns = nsecs;
+    printf("[%s:%06d] pci_disable_sriov pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, comm, pid);
+    printf("  %s\n", kstack(4));
+}
+
+kprobe:vp_modern_queue_address {
+    $ns = nsecs;
+    $pci_dev = *(uint64 *)arg0;
+    printf("[%s:%06d] vp_modern_queue_address mdev=%p pci_dev=%p queue=%u desc=0x%llx driver=0x%llx device=0x%llx comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $pci_dev, arg1 & 0xffff,
+        arg2, arg3, arg4, comm, pid);
+}
+
+kprobe:vp_modern_set_queue_enable {
+    $ns = nsecs;
+    $pci_dev = *(uint64 *)arg0;
+    printf("[%s:%06d] vp_modern_set_queue_enable mdev=%p pci_dev=%p queue=%u enable=%d comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $pci_dev, arg1 & 0xffff, arg2,
+        comm, pid);
+}
+
+kprobe:virtio_pci_probe {
+    @in_virtio_pci_probe[tid] = 1;
+    $ns = nsecs;
+    printf("[%s:%06d] virtio_pci_probe pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, comm, pid);
+}
+
+kretprobe:virtio_pci_probe {
+    delete(@in_virtio_pci_probe[tid]);
+}
+
+kprobe:__pci_set_master /@in_virtio_pci_probe[tid]/ {
+    @in_pci_set_master[tid] = 1;
+    @pci_master_dev[tid] = arg0;
+    @pci_master_enable[tid] = arg1;
+    $ns = nsecs;
+    printf("[%s:%06d] __pci_set_master pci_dev=%p enable=%d comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, arg1, comm, pid);
+}
+
+/*
+ * __pci_set_master() writes PCI_COMMAND only when the BME bit actually
+ * changes. PCI_COMMAND_MASTER is bit 2 (0x0004), so the previous value can
+ * be reconstructed from the new value passed to pci_write_config_word().
+ */
+kprobe:pci_write_config_word
+/@in_pci_set_master[tid] && arg0 == @pci_master_dev[tid] && arg1 == 4/
+{
+    $ns = nsecs;
+    $new = arg2 & 0xffff;
+    $old = @pci_master_enable[tid] ? ($new & 0xfffb) : ($new | 4);
+    printf("[%s:%06d] PCI_COMMAND changed pci_dev=%p 0x%04x -> 0x%04x BME=%d->%d comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $old, $new,
+        ($old & 4) != 0, ($new & 4) != 0,
+        comm, pid);
+    printf("  %s\n", kstack(6));
+}
+
+kretprobe:__pci_set_master {
+    delete(@in_pci_set_master[tid]);
+    delete(@pci_master_dev[tid]);
+    delete(@pci_master_enable[tid]);
+}
+
+kprobe:pci_disable_device {
+    @in_pci_disable_device[tid] = 1;
+    @pci_disable_dev[tid] = arg0;
+    $ns = nsecs;
+    printf("[%s:%06d] pci_disable_device pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, comm, pid);
+}
+
+/*
+ * pci_disable_device() reaches do_pci_disable_device(), which writes
+ * PCI_COMMAND only when BME is set.
+ * Therefore, observing this nested write means BME was actually cleared.
+ */
+kprobe:pci_write_config_word
+/@in_pci_disable_device[tid] && arg0 == @pci_disable_dev[tid] &&
+ arg1 == 4 && !(arg2 & 4)/
+{
+    $ns = nsecs;
+    $new = arg2 & 0xffff;
+    $old = $new | 4;
+    printf("[%s:%06d] PCI_COMMAND changed by pci_disable_device pci_dev=%p 0x%04x -> 0x%04x BME=1->0 comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $old, $new, comm, pid);
+    printf("  %s\n", kstack(6));
+}
+
+kretprobe:pci_disable_device {
+    delete(@in_pci_disable_device[tid]);
+    delete(@pci_disable_dev[tid]);
+}
+
+kprobe:pcie_flr {
+    @in_pcie_flr[tid] = 1;
+    @pcie_flr_dev[tid] = arg0;
+    $ns = nsecs;
+    printf("[%s:%06d] pcie_flr pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, comm, pid);
+}
+
+/*
+ * PCI_EXP_DEVCTL is offset 0x08 in the PCIe capability and
+ * PCI_EXP_DEVCTL_BCR_FLR is bit 15 (0x8000). Reaching this probe with that
+ * bit in the write value means pcie_flr() issued the FLR request.
+ */
+kprobe:pcie_capability_write_word
+/@in_pcie_flr[tid] && arg0 == @pcie_flr_dev[tid] &&
+ arg1 == 8 && (arg2 & 0x8000)/
+{
+    $ns = nsecs;
+    $devctl = arg2 & 0xffff;
+    printf("[%s:%06d] PCI_EXP_DEVCTL FLR set pci_dev=%p value=0x%04x FLR=0->1 comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $devctl, comm, pid);
+}
+
+kretprobe:pcie_flr {
+    delete(@in_pcie_flr[tid]);
+    delete(@pcie_flr_dev[tid]);
+}
+
+/* mdev->pci_dev is the first pointer-sized field in struct virtio_pci_modern_device. */
+kprobe:vp_modern_set_status /(arg1 & 0xff) == 0/ {
+    @seen_ack[arg0] = 0;
+    @seen_driver[arg0] = 0;
+    @seen_features_ok[arg0] = 0;
+    @seen_driver_ok[arg0] = 0;
+    @reset_ns[arg0] = nsecs;
+    $ns = nsecs;
+    $pci_dev = *(uint64 *)arg0;
+    printf("[%s:%06d] RESET status=0 mdev=%p pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        arg0, $pci_dev, comm, pid);
+}
+kprobe:vp_modern_set_status /(arg1 & 1) && !@seen_ack[arg0]/ {
+    @seen_ack[arg0] = 1;
+    $ns = nsecs;
+    $status = arg1 & 0xff;
+    $pci_dev = *(uint64 *)arg0;
+    $delta_ms = @reset_ns[arg0] ? (nsecs - @reset_ns[arg0]) / 1000000 : 0;
+    printf("[%s:%06d] ACK status=0x%x delta_from_reset=%llu ms mdev=%p pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        $status, $delta_ms, arg0, $pci_dev, comm, pid);
+}
+kprobe:vp_modern_set_status /(arg1 & 2) && !@seen_driver[arg0]/ {
+    @seen_driver[arg0] = 1;
+    $ns = nsecs;
+    $status = arg1 & 0xff;
+    $pci_dev = *(uint64 *)arg0;
+    $delta_ms = @reset_ns[arg0] ? (nsecs - @reset_ns[arg0]) / 1000000 : 0;
+    printf("[%s:%06d] DRIVER status=0x%x delta_from_reset=%llu ms mdev=%p pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        $status, $delta_ms, arg0, $pci_dev, comm, pid);
+}
+kprobe:vp_modern_set_status /(arg1 & 8) && !@seen_features_ok[arg0]/ {
+    @seen_features_ok[arg0] = 1;
+    $ns = nsecs;
+    $status = arg1 & 0xff;
+    $pci_dev = *(uint64 *)arg0;
+    $delta_ms = @reset_ns[arg0] ? (nsecs - @reset_ns[arg0]) / 1000000 : 0;
+    printf("[%s:%06d] FEATURES_OK status=0x%x delta_from_reset=%llu ms mdev=%p pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        $status, $delta_ms, arg0, $pci_dev, comm, pid);
+}
+kprobe:vp_modern_set_status /(arg1 & 4) && !@seen_driver_ok[arg0]/ {
+    @seen_driver_ok[arg0] = 1;
+    $ns = nsecs;
+    $status = arg1 & 0xff;
+    $pci_dev = *(uint64 *)arg0;
+    $delta_ms = @reset_ns[arg0] ? (nsecs - @reset_ns[arg0]) / 1000000 : 0;
+    printf("[%s:%06d] DRIVER_OK status=0x%x delta_from_reset=%llu ms mdev=%p pci_dev=%p comm=%s pid=%d\n",
+        strftime("%H_%M_%S", $ns),
+        ($ns / 1000) % 1000000,
+        $status, $delta_ms, arg0, $pci_dev, comm, pid);
+}
