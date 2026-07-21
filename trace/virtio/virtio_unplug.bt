@@ -1,0 +1,62 @@
+#!/usr/bin/env bpftrace
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright(c) 2026 Liu, Changcheng <changcheng.liu@aliyun.com>
+ */
+
+kprobe:pciehp_isr
+{
+	@in_isr[tid] = 1;
+}
+kretprobe:pciehp_isr
+{
+	delete(@in_isr[tid]);
+}
+kprobe:pcie_capability_read_word
+/ @in_isr[tid] && arg1 == 0x1a /
+{
+	@sltsta_ptr[tid] = arg2;          // save &status
+}
+kretprobe:pcie_capability_read_word
+/ @sltsta_ptr[tid] /
+{
+	$s = *(uint16 *)(@sltsta_ptr[tid]);
+	/* SLTSTA bits: ABP=0x1 PFD=0x2 MRLSC=0x4 PDC=0x8 CC=0x10 MRLSS=0x20 PDS=0x40 DLLSC=0x100 */
+	printf("%s pciehp_isr SLTSTA=0x%04x ret=%d\n",
+	       strftime("%H:%M:%S.%f", nsecs), $s, retval);
+	delete(@sltsta_ptr[tid]);
+}
+/*
+ * Requirement 2: mark when we are inside pciehp_ist, print pending_events
+ * & state on entry, then log each subfunction reached from pciehp_ist.
+ */
+kprobe:pciehp_ist
+{
+	@in_ist[tid] = 1;
+	$ctrl = (struct controller *)arg1;   // dev_id == struct controller *
+	printf("%s pciehp_ist ENTER pending_events=0x%x state=%d\n",
+	       strftime("%H:%M:%S.%f", nsecs),
+	       $ctrl->pending_events.counter, $ctrl->state);
+}
+
+kprobe:pciehp_handle_button_press,
+kprobe:pciehp_set_indicators,
+kprobe:pci_dpc_recovered,
+kprobe:pciehp_handle_disable_request,
+kprobe:pciehp_handle_presence_or_link_change
+/@in_ist[tid]/
+{
+	printf("%s pciehp_ist leaf=%s\n", strftime("%H:%M:%S.%f", nsecs), probe);
+}
+
+kretprobe:pciehp_ist
+{
+	delete(@in_ist[tid]);
+}
+
+kprobe:pciehp_disable_slot
+{
+	$ctrl = (struct controller *)arg0;   // arg0 == struct controller *
+	printf("%s pciehp_disable_slot pending_events=0x%x state=%d safe_removal=%d\n",
+	       strftime("%H:%M:%S.%f", nsecs),
+	       $ctrl->pending_events.counter, $ctrl->state, arg1 & 0xff);
+}
